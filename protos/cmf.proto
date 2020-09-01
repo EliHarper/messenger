@@ -1,0 +1,23 @@
+
+syntax = "proto3";
+
+// The execution service definition.
+service Executor {
+  // Sends a request containing a (crude) string repr of "CMFx" 
+  rpc HandleCmfxMsg (CmfxRequest) returns (ChangeReply) {}
+
+  // Request-streaming RPC to demonstrate potential difference in speed:
+  rpc HandleStream (stream CmfxRequest) returns (ChangeReply) {}
+}
+
+// The crude cmfx impersonator - for now.
+message CmfxRequest {
+  string contents = 1;
+}
+
+// The response message containing the result of the action.
+message ChangeReply {
+  string message = 1;
+}
+
+

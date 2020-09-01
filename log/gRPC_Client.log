@@ -1,0 +1,44 @@
+Unexpected exception: Message type "CmfxRequest" has no field named "content".
+ Available Fields(except extensions): ['contents']
+Traceback (most recent call last):
+  File "C:\Users\eli.harper\Projects\Messenger\env\lib\site-packages\google\protobuf\json_format.py", line 522, in _ConvertFieldValuePair
+    raise ParseError(
+google.protobuf.json_format.ParseError: Message type "CmfxRequest" has no field named "content".
+ Available Fields(except extensions): ['contents']
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\eli.harper\Projects\Messenger\Consumer\gRPC\grpc_client.py", line 80, in run
+    unary_sent, unary_success = client.run_unary(msg_content)
+  File "C:\Users\eli.harper\Projects\Messenger\Consumer\gRPC\grpc_client.py", line 41, in run_unary
+    msg_proto = json_format.ParseDict(msg_dict, cmf_pb2.CmfxRequest())
+  File "C:\Users\eli.harper\Projects\Messenger\env\lib\site-packages\google\protobuf\json_format.py", line 452, in ParseDict
+    parser.ConvertMessage(js_dict, message)
+  File "C:\Users\eli.harper\Projects\Messenger\env\lib\site-packages\google\protobuf\json_format.py", line 483, in ConvertMessage
+    self._ConvertFieldValuePair(value, message)
+  File "C:\Users\eli.harper\Projects\Messenger\env\lib\site-packages\google\protobuf\json_format.py", line 594, in _ConvertFieldValuePair
+    raise ParseError(str(e))
+google.protobuf.json_format.ParseError: Message type "CmfxRequest" has no field named "content".
+ Available Fields(except extensions): ['contents']
+Unexpected exception: <_InactiveRpcError of RPC that terminated with:
+	status = StatusCode.INTERNAL
+	details = "Exception serializing request!"
+	debug_error_string = "None"
+>
+Traceback (most recent call last):
+  File "C:\Users\eli.harper\Projects\Messenger\Consumer\gRPC\grpc_client.py", line 80, in run
+    unary_sent, unary_success = client.run_unary(msg_content)
+  File "C:\Users\eli.harper\Projects\Messenger\Consumer\gRPC\grpc_client.py", line 50, in run_unary
+    response = self.send_grpc(msg_dict, stub)
+  File "C:\Users\eli.harper\Projects\Messenger\Consumer\gRPC\grpc_client.py", line 32, in send_grpc
+    response = stub.HandleCmfxMsg(msg)
+  File "C:\Users\eli.harper\Projects\Messenger\env\lib\site-packages\grpc\_channel.py", line 824, in __call__
+    state, call, = self._blocking(request, timeout, metadata, credentials,
+  File "C:\Users\eli.harper\Projects\Messenger\env\lib\site-packages\grpc\_channel.py", line 804, in _blocking
+    raise rendezvous  # pylint: disable-msg=raising-bad-type
+grpc._channel._InactiveRpcError: <_InactiveRpcError of RPC that terminated with:
+	status = StatusCode.INTERNAL
+	details = "Exception serializing request!"
+	debug_error_string = "None"
+>
