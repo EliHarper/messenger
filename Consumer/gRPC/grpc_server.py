@@ -64,7 +64,7 @@ def serve():
         logger.info('Started server.')
         server.wait_for_termination()
     except KeyboardInterrupt:
-        print('Successful count: {}'.format(str(executor.count)))
+        print('\n\nSuccessful count: {}'.format(str(executor.count)))
         sys.exit(0)
 
 

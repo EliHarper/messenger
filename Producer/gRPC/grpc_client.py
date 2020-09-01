@@ -48,7 +48,6 @@ class GRPCClient():
             while CONTINUE_SENDING:
                 if (time.time() - start_time) > TEST_LENGTH:
                     logger.debug('Breaking because time.')
-                    logger.debug('Current time: {}\nStart + TEST_LENGTH: {}'.format(str(start_time + TEST_LENGTH)))
                     break
 
                 response = self.send_grpc(msg_proto, stub)
@@ -57,7 +56,7 @@ class GRPCClient():
                 if response.message == 'success':
                     success += 1
 
-        return sent, success            
+        return (sent, success)
 
 
 
@@ -81,9 +80,8 @@ def run():
     client = GRPCClient()
     
     try:
-        unary_sent, unary_success = client.run_unary(msg_content)
-        print('\nSent: {}\nSuccess: {}'.format(unary_sent, unary_success))
-        
+        (unary_sent, unary_success) = client.run_unary(msg_content)
+        print('\n\nSent: {}\nSuccess: {}'.format(unary_sent, unary_success))
 
     except KeyboardInterrupt:
         logger.debug('Interrupted by user.')
