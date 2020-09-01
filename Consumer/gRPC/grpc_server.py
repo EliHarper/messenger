@@ -20,7 +20,7 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
     """ Executor class to handle RPC service requests. """
     # Count the number of successful on server-side as well as client-side:
 
-    def __init__(self, count = 0)
+    def __init__(self, count = 0):
         self._count = count
         
 
