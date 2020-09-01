@@ -48,7 +48,7 @@ class GRPCClient():
             while CONTINUE_SENDING:
                 if (time.time() - start_time) > TEST_LENGTH:
                     logger.debug('Breaking because time.')
-                    logger.debug('Current time: {}\nStart + TEST_LENGTH: {}'.format(str(start_time + TEST_LENGTH))
+                    logger.debug('Current time: {}\nStart + TEST_LENGTH: {}'.format(str(start_time + TEST_LENGTH)))
                     break
 
                 response = self.send_grpc(msg_proto, stub)

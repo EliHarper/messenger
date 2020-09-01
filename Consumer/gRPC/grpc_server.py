@@ -19,6 +19,8 @@ count = 0
 
 class Executor(cmf_pb2_grpc.ExecutorServicer):
     def HandleCmfxMsg(self, request, context):
+        global count
+
         messagedict = MessageToDict(request)
         message = messagedict['contents']
 
