@@ -15,20 +15,30 @@ LOGGER_NAME = 'server_logger'
 LOG_LOCATION = 'log/gRPC_Server.log'
 LOG_LEVEL = logging.INFO
 logger = logging.getLogger(LOGGER_NAME)
-count = 0
 
 class Executor(cmf_pb2_grpc.ExecutorServicer):
-    def HandleCmfxMsg(self, request, context):
-        global count
+    """ Executor class to handle RPC service requests. """
+    # Count the number of successful on server-side as well as client-side:
 
+    def __init__(self, count = 0)
+        self._count = count
+        
+
+    def HandleCmfxMsg(self, request, context):
         messagedict = MessageToDict(request)
         message = messagedict['contents']
 
         if message.startswith('Lorem') and message.endswith('Cur'):
-            count += 1
+            self._count += 1
             return cmf_pb2.ChangeReply(message='success')
         else:
             return cmf_pb2.ChangeReply(message='Received, but contents incorrect.')
+
+    
+    @property # Getter
+    def count(self):
+        return self._count
+
 
 
 def configure_logger() -> logging.Logger:
@@ -47,13 +57,14 @@ def serve():
     try:
         logger = configure_logger()
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        cmf_pb2_grpc.add_ExecutorServicer_to_server(Executor(), server)
+        executor = Executor()
+        cmf_pb2_grpc.add_ExecutorServicer_to_server(executor, server)
         server.add_insecure_port('[::]:50051')
         server.start()
         logger.info('Started server.')
         server.wait_for_termination()
     except KeyboardInterrupt:
-        print('Successful count: {}'.format(str(count)))
+        print('Successful count: {}'.format(str(executor.count)))
         sys.exit(0)
 
 
