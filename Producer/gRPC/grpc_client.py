@@ -28,36 +28,44 @@ logger = logging.getLogger(LOGGER_NAME)
 class GRPCClient():
     """ Responsible for the client/producer duties via gRPC. """    
 
-    def send_grpc(self, msg, stub):
+    def send_unary(self, msg, stub):
         response = stub.HandleCmfxMsg(msg)
         return response
+
 
     def run_unary(self, msg_content: str) -> (int, int):
         global logger
 
         sent = 0
         success = 0 
-
         start_time = time.time()
-        
-        msg_proto = cmf_pb2.CmfxRequest(contents=msg_content)
+
+        msg_proto = cmf_pb2.CmfxRequest(contents=msg_content)        
 
         with grpc.insecure_channel(CHANNEL_ADDRESS) as channel:
-            # May need to create a stub for each msg?
             stub = cmf_pb2_grpc.ExecutorStub(channel)
             while CONTINUE_SENDING:
                 if (time.time() - start_time) > TEST_LENGTH:
                     logger.debug('Breaking because time.')
                     break
 
-                response = self.send_grpc(msg_proto, stub)
+                response = self.send_unary(msg_proto, stub)
                 sent += 1
 
                 if response.message == 'success':
                     success += 1
+                else:
+                    print('\n\nA message was lost or unsuccessful.\n\n')
+                    logger.error('A message was lost!!!')
 
         return (sent, success)
 
+
+    def run_stream(self, msg_content: str) -> (int, int):
+        global logger
+
+        sent = 0
+        success = 
 
 
 def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
@@ -75,8 +83,7 @@ def run():
 
     logger = configure_logger(LOGGER_NAME, LOG_LOCATION, logging.DEBUG)
     msg_content = open('cmf/lorem.txt', 'r').read().replace('\n', '')
-    print(type(msg_content))
-    print(msg_content)
+    
     client = GRPCClient()
     
     try:
