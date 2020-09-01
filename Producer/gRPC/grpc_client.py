@@ -33,21 +33,25 @@ class GRPCClient():
         return response
 
     def run_unary(self, msg_content: str) -> (int, int):
+        global logger
+
         sent = 0
         success = 0 
 
         start_time = time.time()
-        msg_dict = {'contents' : msg_content}
-        msg_proto = json_format.ParseDict(msg_dict, cmf_pb2.CmfxRequest())
+        
+        msg_proto = cmf_pb2.CmfxRequest(contents=msg_content)
 
         with grpc.insecure_channel(CHANNEL_ADDRESS) as channel:
             # May need to create a stub for each msg?
             stub = cmf_pb2_grpc.ExecutorStub(channel)
             while CONTINUE_SENDING:
-                if (time.time() - start_time) > CONTINUE_SENDING:
+                if (time.time() - start_time) > TEST_LENGTH:
+                    logger.debug('Breaking because time.')
+                    logger.debug('Current time: {}\nStart + TEST_LENGTH: {}'.format(str(start_time + TEST_LENGTH))
                     break
 
-                response = self.send_grpc(msg_dict, stub)
+                response = self.send_grpc(msg_proto, stub)
                 sent += 1
 
                 if response.message == 'success':
