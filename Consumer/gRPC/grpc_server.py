@@ -34,6 +34,17 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
         else:
             return cmf_pb2.ChangeReply(message='Received, but contents incorrect.')
 
+
+    def HandleStream(self, request, context):
+        messagedict = MessageToDict(request)
+        message = messagedict['contents']
+
+        if message.startswith('Lorem') and message.endswith('Cur'):
+            self._count += 1
+            return cmf_pb2.ChangeReply(message='success')
+        else:
+            return cmf_pb2.ChangeReply(message='Received, but contents incorrect.')
+
     
     @property # Getter
     def count(self):
