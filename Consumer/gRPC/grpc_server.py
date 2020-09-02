@@ -36,9 +36,12 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
 
 
     def HandleStream(self, request_iterator, context):
-        try:
+        logger.debug('In HandleStream')
+        try:            
             for msg in request_iterator:
+                logger.debug('Got a message..')
                 message = msg.contents
+                logger.debug('Here it is: {}\n\n'.format(message))
                 if message.startswith('Lorem') and message.endswith('Cur'):
                     self._count += 1
                     return cmf_pb2.ChangeReply(message='success')
