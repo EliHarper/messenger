@@ -1,6 +1,7 @@
 
 """ Implementation of my gRPC executor client."""
 
+import asyncio
 import json
 import logging
 import time
@@ -35,37 +36,46 @@ class GRPCClient():
 
     def run_unary(self, msg_content: str) -> (int, int):
         global logger
+        global CONTINUE_SENDING
 
         sent = 0
         success = 0 
-        start_time = time.time()
 
-        msg_proto = cmf_pb2.CmfxRequest(contents=msg_content)        
+        msg_proto = cmf_pb2.CmfxRequest(contents=msg_content)
 
         with grpc.insecure_channel(CHANNEL_ADDRESS) as channel:
             stub = cmf_pb2_grpc.ExecutorStub(channel)
             while CONTINUE_SENDING:
-                if (time.time() - start_time) > TEST_LENGTH:
-                    logger.debug('Breaking because time.')
-                    break
-
                 response = self.send_unary(msg_proto, stub)
                 sent += 1
 
-                if response.message == 'success':
-                    success += 1
-                else:
+                if response.message != 'success':
                     print('\n\nA message was lost or unsuccessful.\n\n')
                     logger.error('A message was lost!!!')
 
         return (sent, success)
 
 
-    def run_stream(self, msg_content: str) -> (int, int):
+    def send_stream(self, msg_content):
+        global CONTINUE_SENDING
+        sent = 0
+
+        msg_proto = cmf_pb2.CmfxRequest(contents=msg_content)
+        while CONTINUE_SENDING:
+            yield msg_proto
+            sent += 1
+
+        print('\n\nRequest-streaming gRPC sent {} messages.\n\n')
+
+
+    def run_stream(self, msg_content: str):
         global logger
 
-        sent = 0
-        success = 
+        with grpc.insecure_channel(CHANNEL_ADDRESS) as channel:
+            stub = cmf_pb2_grpc.ExecutorStub(channel)
+            msg_iterator = self.send_stream(self, msg_content)
+            stub.HandleStream(msg_iterator)
+
 
 
 def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
@@ -78,6 +88,22 @@ def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
         return logger
 
 
+def run_for_length_of_time():
+    global CONTINUE_SENDING
+
+    start_time = time.time()
+    test_end = start_time + TEST_LENGTH
+
+    while True:
+        if time.time() < test_end:
+            time.sleep(.5)
+        else:
+            logger.debug("Breaking because of time.")
+            CONTINUE_SENDING = False
+
+
+
+
 def run():
     global logger
 
@@ -87,8 +113,13 @@ def run():
     client = GRPCClient()
     
     try:
-        (unary_sent, unary_success) = client.run_unary(msg_content)
-        print('\n\nSent: {}\nSuccess: {}'.format(unary_sent, unary_success))
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, run_for_length_of_time)
+
+        client.run_stream(msg_content)
+        # (unary_sent, unary_success) = client.run_unary(msg_content)
+        # print('\n\nSent: {}\nSuccess: {}'.format(unary_sent, unary_success))
+
 
     except KeyboardInterrupt:
         logger.debug('Interrupted by user.')
