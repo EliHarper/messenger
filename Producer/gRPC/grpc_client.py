@@ -65,7 +65,7 @@ class GRPCClient():
             yield msg_proto
             sent += 1
 
-        print('\n\nRequest-streaming gRPC sent {} messages.\n\n')
+        print('\n\nRequest-streaming gRPC sent {} messages.\n\n'.format(str(sent)))
 
 
     def run_stream(self, msg_content: str):
@@ -73,8 +73,9 @@ class GRPCClient():
 
         with grpc.insecure_channel(CHANNEL_ADDRESS) as channel:
             stub = cmf_pb2_grpc.ExecutorStub(channel)
-            msg_iterator = self.send_stream(self, msg_content)
-            stub.HandleStream(msg_iterator)
+            msg_iterator = self.send_stream(msg_content)
+            summary = stub.HandleStream(msg_iterator)
+            logger.debug('summary: {}'.format(summary.message))
 
 
 
@@ -90,21 +91,19 @@ def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
 
 def run_for_length_of_time():
     global CONTINUE_SENDING
+    
+    test_end = time.time() + TEST_LENGTH
 
-    start_time = time.time()
-    test_end = start_time + TEST_LENGTH
-
-    while True:
+    while CONTINUE_SENDING:
         if time.time() < test_end:
             time.sleep(.5)
         else:
             logger.debug("Breaking because of time.")
-            CONTINUE_SENDING = False
+            CONTINUE_SENDING = False            
 
 
 
-
-def run():
+async def run():
     global logger
 
     logger = configure_logger(LOGGER_NAME, LOG_LOCATION, logging.DEBUG)
@@ -113,10 +112,11 @@ def run():
     client = GRPCClient()
     
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_in_executor(None, run_for_length_of_time)
-
-        client.run_stream(msg_content)
+        await asyncio.gather(
+            run_for_length_of_time(),
+            client.run_stream(msg_content),
+        )        
+        
         # (unary_sent, unary_success) = client.run_unary(msg_content)
         # print('\n\nSent: {}\nSuccess: {}'.format(unary_sent, unary_success))
 
@@ -128,5 +128,10 @@ def run():
         logger.exception('Unexpected exception: {}'.format(e))
 
 
+
 if __name__ == '__main__':
-    run()
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(run())
+    finally:
+        loop.close()

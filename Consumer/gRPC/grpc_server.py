@@ -35,15 +35,20 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
             return cmf_pb2.ChangeReply(message='Received, but contents incorrect.')
 
 
-    def HandleStream(self, request, context):
-        messagedict = MessageToDict(request)
-        message = messagedict['contents']
+    def HandleStream(self, request_iterator, context):
+        try:
+            for msg in request_iterator:
+                message = msg.contents
+                if message.startswith('Lorem') and message.endswith('Cur'):
+                    self._count += 1
+                    return cmf_pb2.ChangeReply(message='success')
+                else:
+                    return cmf_pb2.ChangeReply(message='Received, but contents incorrect.')
+        except Exception as e:
+            logger.debug('Unexpected exception (type: {}) occurred while going over messages: {}'.format(type(e),e))
 
-        if message.startswith('Lorem') and message.endswith('Cur'):
-            self._count += 1
-            return cmf_pb2.ChangeReply(message='success')
-        else:
-            return cmf_pb2.ChangeReply(message='Received, but contents incorrect.')
+
+        
 
     
     @property # Getter
