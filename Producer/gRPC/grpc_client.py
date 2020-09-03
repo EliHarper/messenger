@@ -1,12 +1,14 @@
 
 """ Implementation of my gRPC executor client."""
 
+import concurrent.futures            
 import threading
 import json
 import logging
 import string
 import time
 from collections import deque
+import sys
 
 import grpc
 from google.protobuf import json_format
@@ -16,11 +18,11 @@ from pb import cmf_pb2, cmf_pb2_grpc
 
 # Global declarations:
 
-# Assuming that we use the docker VM as the gRPC server:
+# Assuming that we use the CentOS VM as the gRPC server:
 CHANNEL_ADDRESS = '192.168.1.12:50051'
 
 CONTINUE_SENDING = True
-TEST_LENGTH = 45
+TEST_LENGTH = 10
 
 LOGGER_NAME =  'client_logger'
 LOG_LOCATION = './log/gRPC_Client.log'
@@ -30,6 +32,10 @@ logger = logging.getLogger(LOGGER_NAME)
 
 class GRPCClient():
     """ Responsible for the client/producer duties via gRPC. """    
+
+    def __init__(self):
+        self.channel = grpc.insecure_channel(CHANNEL_ADDRESS)
+        self.stub = cmf_pb2_grpc.ExecutorStub(self.channel)
 
     def send_unary(self, msg, stub):
         response = stub.HandleCmfxMsg(msg)
@@ -45,7 +51,7 @@ class GRPCClient():
 
         msg_proto = cmf_pb2.CmfxRequest(contents=msg_content)
 
-        with grpc.insecure_channel(CHANNEL_ADDRESS) as channel:
+        with self.channel as channel:
             stub = cmf_pb2_grpc.ExecutorStub(channel)
             while CONTINUE_SENDING:
                 response = self.send_unary(msg_proto, stub)
@@ -58,59 +64,35 @@ class GRPCClient():
         return (sent, success)
 
 
-    def message_generator(self, lorem: str, queue: deque):
+    def message_generator(self, queue: deque, lorem: str):    
         words = lorem.split()        
         
-        for idx, word in enumerate(words):
-            words[idx] = word.upper()
-            msg = cmf_pb2.CmfxRequest(contents=(' '.join(words)))
-            queue.append(msg)
+        for _ in range(170): # Just a hair over 100,000 msgs..
+            for idx, word in enumerate(words):
+                words[idx] = word.upper()
+                msg = cmf_pb2.CmfxRequest(contents=(' '.join(words)))
+                queue.append(msg)            
+        # for idx in range(50):
+        #     msg = cmf_pb2.CmfxRequest(contents=str(idx))
+        #     queue.append(msg)        
         
-        logger.info('put em all!')
+        logger.info('Loaded pb CmfxRequests!')
+        return queue
             
 
-    def send_stream(self, queue: deque):
-        global CONTINUE_SENDING
-        sent = 0
-
-        # for _ in range(0, 10):
-        #     yield queue.popleft()            
-        while CONTINUE_SENDING:
-            # logger.info('len(queue): {}'.format(len(queue)))
-            # logger.info('dequeuing; coninue_sending: {}'.format(CONTINUE_SENDING))            
-            next_item = queue.popleft()                        
-            yield next_item
-            sent += 1            
-            # try:
-            #     if postyield:
-            #         logger.info('time elapsed: {}'.format(time.time() - postyield))
-            #         postyield = time.time()
-            # except Exception:
-            #     postyield = time.time()
-            
-
-        logger.info('\n\nRequest-streaming gRPC sent {} messages.\n\n'.format(str(sent)))
-
-
-    def run_stream(self, queue: deque):
-        global logger
-
-        channel = grpc.insecure_channel(CHANNEL_ADDRESS)
-        fut = grpc.channel_ready_future(channel)
-
-        while not fut.done():
-            logger.info('channel isnt ready')
-            time.sleep(1)
+    def send_stream(self, queue: deque):                
+        for msg in queue:
+            # logger.info('sending: {}'.format(msg))
+            yield msg
         
-        stub = cmf_pb2_grpc.ExecutorStub(channel)
-        logger.info('calling send_stream with queue of length: {}'.format(len(queue)))
-        msg_iterator = iter(self.send_stream(queue))
-        summary = stub.HandleStream(msg_iterator)
+
+    def run_stream(self, queue: deque):                
+        start = time.time()
+        logger.info('calling send_stream with queue of length: {}'.format(len(queue)))     
+        msg_iterator = self.send_stream(queue)
+        summary = self.stub.HandleStream(msg_iterator)
         logger.debug('summary: {}'.format(summary.message))
-
-        channel.close()
-            
-            
+        logger.debug('Time elapsed: {}'.format(time.time() - start))
 
 
 def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
@@ -123,15 +105,10 @@ def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
         return logger
 
 
-def run_for_length_of_time(worker):
-    global CONTINUE_SENDING        
-    global logger
-
-    logger.info('STOPPING IT NOW')
-    logger.debug('STOPPING IT NOW')
-    CONTINUE_SENDING = False
-    worker.join()
-    return
+def run_for_length_of_time():
+    time.sleep(TEST_LENGTH)
+    logger.debug('STOPPING IT NOW') 
+    sys.exit(0)
 
 
 def run():
@@ -143,20 +120,22 @@ def run():
     client = GRPCClient()
 
     queue = deque()
-    worker = threading.Thread(target=client.message_generator(msg_content, queue))
-    worker.start()
+    # worker = threading.Thread(target=client.message_generator(queue,))
+    # worker.start()
     
+    queue = client.message_generator(queue, msg_content)
+
     try:
-        logger.info('The wild run thread is fast asleep... zzz..')
-        time.sleep(2)
-        logger.info('The wild run thread woke up!!!')
-        
-        logger.info('The wild run thread used run_stream!')
-        test = threading.Thread(target=client.run_stream(queue))
-        test.start()
-        
-        timer = threading.Timer(TEST_LENGTH, run_for_length_of_time, args=(worker,))
-        timer.start()
+        # test = threading.Thread(target=client.run_stream(queue))
+        client.run_stream(queue)
+
+        # time_thread = threading.Thread(target=run_for_length_of_time)
+        # time_thread.start()
+
+
+        # test.start()
+        # timer = threading.Timer(TEST_LENGTH, run_for_length_of_time, args=(worker,))
+        # timer.start()
         
         # (unary_sent, unary_success) = client.run_unary(msg_content)
         # print('\n\nSent: {}\nSuccess: {}'.format(unary_sent, unary_success))

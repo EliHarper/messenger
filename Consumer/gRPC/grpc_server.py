@@ -17,6 +17,7 @@ LOG_LOCATION = 'log/gRPC_Server.log'
 LOG_LEVEL = logging.INFO
 logger = logging.getLogger(LOGGER_NAME)
 
+
 class Executor(cmf_pb2_grpc.ExecutorServicer):
     """ Executor class to handle RPC service requests. """    
     def __init__(self):
@@ -24,12 +25,14 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
         self._errcount = 0
 
 
-    @property # Getter
+    # Getter for (successful) count:
+    @property 
     def count(self):
         return self._count        
 
 
-    @property # Getter
+    # Getter for total count:
+    @property 
     def errcount(self):
         return self._errcount        
         
@@ -48,12 +51,10 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
 
     def HandleStream(self, request_iterator, context):     
         try:            
-            for msg in request_iterator:                
-                message = msg.contents
+            for msg in request_iterator:                                
+                message = msg.contents                                
                 self.check_quickly(message)
-                
             return cmf_pb2.ChangeReply(message='success')
-
         except Exception as e:
             logger.debug('Unexpected exception (type: {}) occurred while going over messages: {}'.format(type(e),e))            
     
@@ -62,7 +63,7 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
         if len(message) == 4096:
             self._count += 1
         else:
-            self._errcount
+            self._errcount += 1
 
 
     def check_thoroughly(self, message):
@@ -96,7 +97,7 @@ def serve():
     
     try:
         logger = configure_logger()
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))        
         executor = Executor()
         cmf_pb2_grpc.add_ExecutorServicer_to_server(executor, server)
         server.add_insecure_port('[::]:50051')
@@ -104,7 +105,7 @@ def serve():
         logger.info('Started server.')
         server.wait_for_termination()
     except KeyboardInterrupt:
-        print('\n\nSuccessful count: {}\n\nUnexpected count: {}'.format(str(executor.count), str(executor.errcount)))
+        logger.info('\n\nSuccessful count: {}\n\nTotal count: {}'.format(str(executor.count), str(executor.errcount)))
         sys.exit(0)
 
 
