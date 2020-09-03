@@ -53,7 +53,7 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
         # print('type(request_iterator): {}'.format(type(request_iterator)))
         
         try:            
-            for msg in request_iterator:                
+            for msg in request_iterator:
                 print('FUCKING HIII')
                 print(msg.contents)
                 message = msg.contents                

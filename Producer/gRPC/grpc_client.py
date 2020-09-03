@@ -20,7 +20,7 @@ from pb import cmf_pb2, cmf_pb2_grpc
 CHANNEL_ADDRESS = '192.168.1.12:50051'
 
 CONTINUE_SENDING = True
-TEST_LENGTH = 10
+TEST_LENGTH = 45
 
 LOGGER_NAME =  'client_logger'
 LOG_LOCATION = './log/gRPC_Client.log'
@@ -77,19 +77,27 @@ class GRPCClient():
         sent = 0
 
         print('starting while:')
-        while True:
-            print('in while')
+        for _ in range(0, 10):
+            yield queue.popleft()            
+        # while True:
+            # print('in while')
             
-            if not CONTINUE_SENDING:
-                print('\n\nbreaking intentionally\n\n')
-                break
+            # if not CONTINUE_SENDING:
+            #     print('\n\nbreaking intentionally\n\n')
+            #     break
             
-            print('len(queue): {}'.format(len(queue)))
-            print('dequeuing; coninue_sending: {}'.format(CONTINUE_SENDING))            
-            next_item = queue.popleft()
-            print('next_item, type: {}, {}'.format(next_item, type(next_item)))            
-            yield next_item
-            sent += 1            
+            # print('len(queue): {}'.format(len(queue)))
+            # print('dequeuing; coninue_sending: {}'.format(CONTINUE_SENDING))            
+            # next_item = queue.popleft()
+            # print('next_item, type: {}, {}'.format(next_item, type(next_item)))            
+            # yield next_item
+            # try:
+            #     if postyield:
+            #         print('time elapsed: {}'.format(time.time() - postyield))
+            #         postyield = time.time()
+            # except Exception:
+            #     postyield = time.time()
+            # sent += 1            
             
 
         print('\n\nRequest-streaming gRPC sent {} messages.\n\n'.format(str(sent)))
@@ -98,12 +106,22 @@ class GRPCClient():
     def run_stream(self, queue: deque):
         global logger
 
-        with grpc.insecure_channel(CHANNEL_ADDRESS) as channel:
+        channel = grpc.insecure_channel(CHANNEL_ADDRESS)
+        fut = grpc.channel_ready_future(channel)
+
+        while not fut.done():
+            print('channel isnt ready')
+            time.sleep(1)
+
+        while CONTINUE_SENDING:
             stub = cmf_pb2_grpc.ExecutorStub(channel)
             print('calling send_stream with queue of length: {}'.format(len(queue)))
             msg_iterator = self.send_stream(queue)
-            summary = stub.HandleStream(msg_iterator)
-            logger.debug('summary: {}'.format(summary.message))
+            for summary in channel.stream_unary(stub.HandleStream(msg_iterator)):
+                logger.debug('summary: {}'.format(summary.message))
+
+        channel.close()
+            
             
 
 
