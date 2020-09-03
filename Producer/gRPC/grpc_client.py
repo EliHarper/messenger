@@ -63,44 +63,33 @@ class GRPCClient():
         
         for idx, word in enumerate(words):
             words[idx] = word.upper()
-            # queue.append(' '.join(words))
-            msg = cmf_pb2.CmfxRequest(contents=str(idx))
+            msg = cmf_pb2.CmfxRequest(contents=(' '.join(words)))
             queue.append(msg)
         
-        print('put em all!')
+        logger.info('put em all!')
             
 
     def send_stream(self, queue: deque):
-        print('in send_stream')
-        global logger
         global CONTINUE_SENDING
         sent = 0
 
-        print('starting while:')
-        for _ in range(0, 10):
-            yield queue.popleft()            
-        # while True:
-            # print('in while')
-            
-            # if not CONTINUE_SENDING:
-            #     print('\n\nbreaking intentionally\n\n')
-            #     break
-            
-            # print('len(queue): {}'.format(len(queue)))
-            # print('dequeuing; coninue_sending: {}'.format(CONTINUE_SENDING))            
-            # next_item = queue.popleft()
-            # print('next_item, type: {}, {}'.format(next_item, type(next_item)))            
-            # yield next_item
+        # for _ in range(0, 10):
+        #     yield queue.popleft()            
+        while CONTINUE_SENDING:
+            # logger.info('len(queue): {}'.format(len(queue)))
+            # logger.info('dequeuing; coninue_sending: {}'.format(CONTINUE_SENDING))            
+            next_item = queue.popleft()                        
+            yield next_item
+            sent += 1            
             # try:
             #     if postyield:
-            #         print('time elapsed: {}'.format(time.time() - postyield))
+            #         logger.info('time elapsed: {}'.format(time.time() - postyield))
             #         postyield = time.time()
             # except Exception:
             #     postyield = time.time()
-            # sent += 1            
             
 
-        print('\n\nRequest-streaming gRPC sent {} messages.\n\n'.format(str(sent)))
+        logger.info('\n\nRequest-streaming gRPC sent {} messages.\n\n'.format(str(sent)))
 
 
     def run_stream(self, queue: deque):
@@ -110,15 +99,14 @@ class GRPCClient():
         fut = grpc.channel_ready_future(channel)
 
         while not fut.done():
-            print('channel isnt ready')
+            logger.info('channel isnt ready')
             time.sleep(1)
-
-        while CONTINUE_SENDING:
-            stub = cmf_pb2_grpc.ExecutorStub(channel)
-            print('calling send_stream with queue of length: {}'.format(len(queue)))
-            msg_iterator = self.send_stream(queue)
-            for summary in channel.stream_unary(stub.HandleStream(msg_iterator)):
-                logger.debug('summary: {}'.format(summary.message))
+        
+        stub = cmf_pb2_grpc.ExecutorStub(channel)
+        logger.info('calling send_stream with queue of length: {}'.format(len(queue)))
+        msg_iterator = iter(self.send_stream(queue))
+        summary = stub.HandleStream(msg_iterator)
+        logger.debug('summary: {}'.format(summary.message))
 
         channel.close()
             
@@ -139,7 +127,7 @@ def run_for_length_of_time(worker):
     global CONTINUE_SENDING        
     global logger
 
-    print('STOPPING IT NOW')
+    logger.info('STOPPING IT NOW')
     logger.debug('STOPPING IT NOW')
     CONTINUE_SENDING = False
     worker.join()
@@ -159,14 +147,14 @@ def run():
     worker.start()
     
     try:
-        print('The wild run thread is fast asleep... zzz..')
+        logger.info('The wild run thread is fast asleep... zzz..')
         time.sleep(2)
-        print('The wild run thread woke up!!!')
+        logger.info('The wild run thread woke up!!!')
         
-        print('The wild run thread used run_stream!')
+        logger.info('The wild run thread used run_stream!')
         test = threading.Thread(target=client.run_stream(queue))
-
         test.start()
+        
         timer = threading.Timer(TEST_LENGTH, run_for_length_of_time, args=(worker,))
         timer.start()
         

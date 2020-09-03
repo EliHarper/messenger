@@ -21,7 +21,7 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
     """ Executor class to handle RPC service requests. """    
     def __init__(self):
         self._count = 0
-        self._totalcount = 0
+        self._errcount = 0
 
 
     @property # Getter
@@ -30,8 +30,8 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
 
 
     @property # Getter
-    def totalcount(self):
-        return self._totalcount        
+    def errcount(self):
+        return self._errcount        
         
 
     def HandleCmfxMsg(self, request, context):
@@ -42,40 +42,43 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
             self._count += 1
             return cmf_pb2.ChangeReply(message='success')
         else:
-            self._totalcount +=1
+            self._errcount +=1
             return cmf_pb2.ChangeReply(message='Received, but contents incorrect.')
 
 
     def HandleStream(self, request_iterator, context):     
-        # global logger
-        # logger.debug('In HandleStream')
-
-        # print('type(request_iterator): {}'.format(type(request_iterator)))
-        
         try:            
-            for msg in request_iterator:
-                print('FUCKING HIII')
-                print(msg.contents)
-                message = msg.contents                
+            for msg in request_iterator:                
+                message = msg.contents
+                self.check_quickly(message)
                 
-                # lorem = 'Lorem'
-                # loremslice = message[:5]
-                # cur = 'Cur'
-                # curslice = message[len(message)-3:]
+            return cmf_pb2.ChangeReply(message='success')
 
-                # print('loremslice: {}'.format(loremslice))
-                # print('curslice: {}'.format(curslice))
-
-                # if lorem.upper() == loremslice.upper() and cur.upper() == curslice.upper():
-                #     self._count += 1
-                #     return cmf_pb2.ChangeReply(message='success')
-                # else:
-                self._totalcount += 1
-                return cmf_pb2.ChangeReply(message='success')
         except Exception as e:
             logger.debug('Unexpected exception (type: {}) occurred while going over messages: {}'.format(type(e),e))            
     
 
+    def check_quickly(self, message):
+        if len(message) == 4096:
+            self._count += 1
+        else:
+            self._errcount
+
+
+    def check_thoroughly(self, message):
+        lorem = 'Lorem'
+        loremslice = message[:5]
+        cur = 'Cur'
+        curslice = message[len(message)-3:]
+
+        print('loremslice: {}'.format(loremslice))
+        print('curslice: {}'.format(curslice))
+
+        if lorem.upper() == loremslice.upper() and cur.upper() == curslice.upper():
+            self._count += 1
+            return cmf_pb2.ChangeReply(message='success')
+        else:
+            self._errcount += 1
 
 
 def configure_logger() -> logging.Logger:
@@ -101,7 +104,7 @@ def serve():
         logger.info('Started server.')
         server.wait_for_termination()
     except KeyboardInterrupt:
-        print('\n\nSuccessful count: {}\n\nTotal count: {}'.format(str(executor.count), str(executor.totalcount)))
+        print('\n\nSuccessful count: {}\n\nUnexpected count: {}'.format(str(executor.count), str(executor.errcount)))
         sys.exit(0)
 
 
