@@ -5,6 +5,7 @@ from concurrent import futures
 import grpc
 import logging
 from google.protobuf.json_format import MessageToJson, MessageToDict
+import re
 import sys
 
 from pb import cmf_pb2, cmf_pb2_grpc
@@ -17,11 +18,20 @@ LOG_LEVEL = logging.INFO
 logger = logging.getLogger(LOGGER_NAME)
 
 class Executor(cmf_pb2_grpc.ExecutorServicer):
-    """ Executor class to handle RPC service requests. """
-    # Count the number of successful on server-side as well as client-side:
+    """ Executor class to handle RPC service requests. """    
+    def __init__(self):
+        self._count = 0
+        self._totalcount = 0
 
-    def __init__(self, count = 0):
-        self._count = count
+
+    @property # Getter
+    def count(self):
+        return self._count        
+
+
+    @property # Getter
+    def totalcount(self):
+        return self._totalcount        
         
 
     def HandleCmfxMsg(self, request, context):
@@ -32,31 +42,39 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
             self._count += 1
             return cmf_pb2.ChangeReply(message='success')
         else:
+            self._totalcount +=1
             return cmf_pb2.ChangeReply(message='Received, but contents incorrect.')
 
 
-    def HandleStream(self, request_iterator, context):
-        logger.debug('In HandleStream')
-        try:            
-            for msg in request_iterator:
-                logger.debug('Got a message..')
-                message = msg.contents
-                logger.debug('Here it is: {}\n\n'.format(message))
-                if message.startswith('Lorem') and message.endswith('Cur'):
-                    self._count += 1
-                    return cmf_pb2.ChangeReply(message='success')
-                else:
-                    return cmf_pb2.ChangeReply(message='Received, but contents incorrect.')
-        except Exception as e:
-            logger.debug('Unexpected exception (type: {}) occurred while going over messages: {}'.format(type(e),e))
+    def HandleStream(self, request_iterator, context):     
+        # global logger
+        # logger.debug('In HandleStream')
 
-
+        # print('type(request_iterator): {}'.format(type(request_iterator)))
         
+        try:            
+            for msg in request_iterator:                
+                print('FUCKING HIII')
+                print(msg.contents)
+                message = msg.contents                
+                
+                # lorem = 'Lorem'
+                # loremslice = message[:5]
+                # cur = 'Cur'
+                # curslice = message[len(message)-3:]
 
+                # print('loremslice: {}'.format(loremslice))
+                # print('curslice: {}'.format(curslice))
+
+                # if lorem.upper() == loremslice.upper() and cur.upper() == curslice.upper():
+                #     self._count += 1
+                #     return cmf_pb2.ChangeReply(message='success')
+                # else:
+                self._totalcount += 1
+                return cmf_pb2.ChangeReply(message='success')
+        except Exception as e:
+            logger.debug('Unexpected exception (type: {}) occurred while going over messages: {}'.format(type(e),e))            
     
-    @property # Getter
-    def count(self):
-        return self._count
 
 
 
@@ -83,7 +101,7 @@ def serve():
         logger.info('Started server.')
         server.wait_for_termination()
     except KeyboardInterrupt:
-        print('\n\nSuccessful count: {}'.format(str(executor.count)))
+        print('\n\nSuccessful count: {}\n\nTotal count: {}'.format(str(executor.count), str(executor.totalcount)))
         sys.exit(0)
 
 

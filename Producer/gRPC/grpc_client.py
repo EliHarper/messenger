@@ -1,10 +1,12 @@
 
 """ Implementation of my gRPC executor client."""
 
-import asyncio
+import threading
 import json
 import logging
+import string
 import time
+from collections import deque
 
 import grpc
 from google.protobuf import json_format
@@ -18,7 +20,7 @@ from pb import cmf_pb2, cmf_pb2_grpc
 CHANNEL_ADDRESS = '192.168.1.12:50051'
 
 CONTINUE_SENDING = True
-TEST_LENGTH = 60
+TEST_LENGTH = 10
 
 LOGGER_NAME =  'client_logger'
 LOG_LOCATION = './log/gRPC_Client.log'
@@ -56,27 +58,53 @@ class GRPCClient():
         return (sent, success)
 
 
-    def send_stream(self, msg_content):
+    def message_generator(self, lorem: str, queue: deque):
+        words = lorem.split()        
+        
+        for idx, word in enumerate(words):
+            words[idx] = word.upper()
+            # queue.append(' '.join(words))
+            msg = cmf_pb2.CmfxRequest(contents=str(idx))
+            queue.append(msg)
+        
+        print('put em all!')
+            
+
+    def send_stream(self, queue: deque):
+        print('in send_stream')
+        global logger
         global CONTINUE_SENDING
         sent = 0
 
-        msg_proto = cmf_pb2.CmfxRequest(contents=msg_content)
-        while CONTINUE_SENDING:
-            yield msg_proto
-            sent += 1
+        print('starting while:')
+        while True:
+            print('in while')
+            
+            if not CONTINUE_SENDING:
+                print('\n\nbreaking intentionally\n\n')
+                break
+            
+            print('len(queue): {}'.format(len(queue)))
+            print('dequeuing; coninue_sending: {}'.format(CONTINUE_SENDING))            
+            next_item = queue.popleft()
+            print('next_item, type: {}, {}'.format(next_item, type(next_item)))            
+            yield next_item
+            sent += 1            
+            
 
         print('\n\nRequest-streaming gRPC sent {} messages.\n\n'.format(str(sent)))
 
 
-    def run_stream(self, msg_content: str):
+    def run_stream(self, queue: deque):
         global logger
 
         with grpc.insecure_channel(CHANNEL_ADDRESS) as channel:
             stub = cmf_pb2_grpc.ExecutorStub(channel)
-            msg_iterator = self.send_stream(msg_content)
+            print('calling send_stream with queue of length: {}'.format(len(queue)))
+            msg_iterator = self.send_stream(queue)
             summary = stub.HandleStream(msg_iterator)
             logger.debug('summary: {}'.format(summary.message))
-
+            
 
 
 def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
@@ -89,33 +117,40 @@ def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
         return logger
 
 
-def run_for_length_of_time():
-    global CONTINUE_SENDING
-    
-    test_end = time.time() + TEST_LENGTH
+def run_for_length_of_time(worker):
+    global CONTINUE_SENDING        
+    global logger
 
-    while CONTINUE_SENDING:
-        if time.time() < test_end:
-            time.sleep(.5)
-        else:
-            logger.debug("Breaking because of time.")
-            CONTINUE_SENDING = False            
+    print('STOPPING IT NOW')
+    logger.debug('STOPPING IT NOW')
+    CONTINUE_SENDING = False
+    worker.join()
+    return
 
 
-
-async def run():
+def run():
     global logger
 
     logger = configure_logger(LOGGER_NAME, LOG_LOCATION, logging.DEBUG)
     msg_content = open('cmf/lorem.txt', 'r').read().replace('\n', '')
     
     client = GRPCClient()
+
+    queue = deque()
+    worker = threading.Thread(target=client.message_generator(msg_content, queue))
+    worker.start()
     
     try:
-        await asyncio.gather(
-            run_for_length_of_time(),
-            client.run_stream(msg_content),
-        )        
+        print('The wild run thread is fast asleep... zzz..')
+        time.sleep(2)
+        print('The wild run thread woke up!!!')
+        
+        print('The wild run thread used run_stream!')
+        test = threading.Thread(target=client.run_stream(queue))
+
+        test.start()
+        timer = threading.Timer(TEST_LENGTH, run_for_length_of_time, args=(worker,))
+        timer.start()
         
         # (unary_sent, unary_success) = client.run_unary(msg_content)
         # print('\n\nSent: {}\nSuccess: {}'.format(unary_sent, unary_success))
@@ -130,8 +165,4 @@ async def run():
 
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(run())
-    finally:
-        loop.close()
+    run()

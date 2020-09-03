@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import cmf_pb2 as cmf__pb2
+from . import cmf_pb2 as cmf__pb2
 
 
 class ExecutorStub(object):
