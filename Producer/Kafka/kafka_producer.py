@@ -47,8 +47,6 @@ def message_generator(queue: deque, lorem: str):
             # Re-lowercasify:        
             words = lorem.split()
 
-        
-        import pdb; pdb.set_trace()
         logger.info('Loaded Cmfx Requests!')
         return queue
 
