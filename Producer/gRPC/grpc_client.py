@@ -72,9 +72,6 @@ class GRPCClient():
                 words[idx] = word.upper()
                 msg = cmf_pb2.CmfxRequest(contents=(' '.join(words)))
                 queue.append(msg)            
-        # for idx in range(50):
-        #     msg = cmf_pb2.CmfxRequest(contents=str(idx))
-        #     queue.append(msg)        
         
         logger.info('Loaded pb CmfxRequests!')
         return queue
@@ -120,9 +117,6 @@ def run():
     client = GRPCClient()
 
     queue = deque()
-    # worker = threading.Thread(target=client.message_generator(queue,))
-    # worker.start()
-    
     queue = client.message_generator(queue, msg_content)
 
     try:
