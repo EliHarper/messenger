@@ -2,6 +2,7 @@ from decouple import config
 from json import loads
 from kafka import KafkaConsumer
 
+import common
 import logging
 import sys
 import time
@@ -9,8 +10,8 @@ import time
 
 TEST_LENGTH = 10
 
-LOGGER_NAME =  'kafka_producer_logger'
-LOG_LOCATION = './log/kafka_producer.log'
+LOGGER_NAME =  'kafka_consumer_logger'
+LOG_LOCATION = './log/kafka_consumer.log'
 logger = logging.getLogger(LOGGER_NAME)
 
 def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
@@ -39,16 +40,25 @@ def run():
     
     consumer = create_kafka_consumer()
 
-    msgCount = 0
+    msg_chk = common.MessageChecker()
+    numberton = 0
     try:
         for msg in consumer:
-            msgCount += 1
+            numberton += 1
+            msg_chk.check_quickly(msg.value)
+            if numberton == 100980:
+                print(len(msg))
+                print(msg)
+        
+        logger.info('Finished receiving messages. Successful: {}, Unsuccessful: {}'
+            .format(msg_chk.count, msg_chk.errcount))
 
     except Exception as e:
         logger.debug('Shit went down: {}'.format(e))
 
     except KeyboardInterrupt:
-        logger.info('Received {} messages as the KafkaConsumer.'.format(msgCount))
+        logger.info('Finished receiving messages. Successful: {}, Unsuccessful: {}'
+            .format(msg_chk.count, msg_chk.errcount))
         sys.exit(0)
 
         
