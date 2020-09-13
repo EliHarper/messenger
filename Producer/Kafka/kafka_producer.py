@@ -3,16 +3,15 @@ from collections import deque
 from common import load_messages
 from decouple import config
 from kafka import KafkaProducer
+from tqdm import tqdm
 
 import logging
-import progressbar
+import tqdm
 import sys
 import time
 import traceback
 
 
-
-progressbar.streams.wrap_stderr()
 
 TEST_LENGTH = 10
 
@@ -84,20 +83,18 @@ def run():
         count = 0
         total = len(queue)
         pct = total // 100
-        logger.debug('1 percent is hit at: {}'.format(pct))        
+        logger.debug('1 percent is hit at: {}'.format(pct))    
+        pct_counter = 0    
 
-        # with progressbar.ProgressBar(max_value=100) as bar:
+        pbar = tqdm.tqdm(total=100)
         for msg in queue:
             producer.send('msgs', msg)
-            count += 1
-            if count % pct == 0:
-                print("Progress {:2.0%}".format(count // pct), end="\r")
-                # logger.debug("MET CONDITION")
-                # progressbar.streams.flush()
-                # print(bar.update(count // pct), end='\r')
-                # print_progress_bar(count, total, pct)
-            # if count == len(queue):
-            #     bar.finish()
+            count += 1                        
+            if count % pct == 0:                
+                pbar.update(1)
+            if count == len(queue):
+                pbar.close()
+
     
 
     except Exception as e:

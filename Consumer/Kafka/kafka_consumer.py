@@ -47,7 +47,7 @@ def run():
             numberton += 1
             msg_chk.check_quickly(msg.value)
             if numberton == 100980:
-                print(len(msg))
+                print(len(msg.value))
                 print(msg)
         
         logger.info('Finished receiving messages. Successful: {}, Unsuccessful: {}'
