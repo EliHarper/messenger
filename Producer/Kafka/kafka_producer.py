@@ -68,47 +68,40 @@ def print_progress_bar(count, total, pct, prefix="Progress:", suffix="Complete",
 def run():
     global logger
 
+    prep_start = time.time()
     logger = configure_logger(LOGGER_NAME, LOG_LOCATION, logging.DEBUG)
-    # msg_content = open('cmf/lorem.txt', 'r').read().replace('\n', '')
+    
+    logger.info('Preparing..')
 
-    # queue = deque()
-    # queue = message_generator(queue, msg_content)
     queue = load_messages()
 
-    logger.info('Starting send with queue of length: {}'.format(len(queue)))
+    logger.info('Finished preparing; starting send with queue of length: {}'.format(len(queue)))
+    prep_time = time.time() - prep_start
+
+    logger.info('Finished preparing; now sending..')
+    
     start_time = time.time()
+    count = 0
 
     try:
         exc_info = sys.exc_info()
-        count = 0
-        total = len(queue)
-        pct = total // 100
-        logger.debug('1 percent is hit at: {}'.format(pct))    
-        pct_counter = 0    
-
-        pbar = tqdm.tqdm(total=100)
+        
         for msg in queue:
+            count += 1
             producer.send('msgs', msg)
-            count += 1                        
-            if count % pct == 0:                
-                pbar.update(1)
-            if count == len(queue):
-                pbar.close()
-
-    
 
     except Exception as e:
         logger.debug('Unexpected exception while sending: {}'.format(e))
         logger.debug('\n***Full trace:\n{}'.format(traceback.print_exc()))
-
-    finally:
         traceback.print_exception(*exc_info)
         del exc_info
+
+    finally:
         producer.close()
         
-    logger.debug('Done! Time elapsed: {}'.format(time.time() - start_time))
+    test_time = time.time() - start_time
+    logger.debug('Done! Time elapsed preparing: {}. Time elapsed sending: {}. \nTotal: {}'.format(prep_time, test_time, prep_time + test_time))
     logger.info('Sent {} messages.\n'.format(count))
-
 
 
 

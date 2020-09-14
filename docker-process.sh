@@ -5,9 +5,9 @@
 function getSub {
      local consprod=$1
      if [[ $consprod == *"consumer"* ]]; then
-	 SUB="Consumers"
+	 SUB="Consumer"
      else
-	 SUB="Producers"
+	 SUB="Producer"
      fi
 }	     
 
@@ -44,8 +44,8 @@ echo "RUNNING FOR ALL!"
 
 for i in "${images[@]}"
 do
-         i=${i//,}
-         getSub $i
+     i=${i//,}
+     getSub $i
 	 getFmt $i
 	 docker build -f Dockerfiles/$SUB/$FMT/Dockerfile -t ${i//,} . && \
 	 docker tag $i eliharper/$i:$VERSION && \

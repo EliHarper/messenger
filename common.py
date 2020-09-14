@@ -7,6 +7,10 @@ LOGGER_NAME = 'common_logger'
 LOG_LOCATION = './log/common.log'
 logger = logging.getLogger(LOGGER_NAME)
 
+CMF_LOCATION = './cmf/lorem.txt'
+LEN_QUEUE = 100980
+MSG_LEN = 4095
+
 
 class MessageChecker:
     def __init__(self):
@@ -27,7 +31,7 @@ class MessageChecker:
 
 
     def check_quickly(self, message):
-        if len(message) == 4095:
+        if len(message) == MSG_LEN:
             self._count += 1
         else:
             self._errcount += 1
@@ -58,7 +62,7 @@ def configure_logger(name: str, filepath: str, logLevel: int):
     logger.setLevel(logLevel)
 
 
-def message_generator(queue: deque, lorem: str):    
+def _message_generator(queue: deque, lorem: str) -> deque:    
     global logger
 
     words = lorem.split()
@@ -73,6 +77,7 @@ def message_generator(queue: deque, lorem: str):
         words = lorem.split()
 
     logger.info('Loaded Cmfx Requests!')
+    
     return queue
 
 
@@ -80,9 +85,9 @@ def load_messages() -> deque:
     global logger
 
     configure_logger(LOGGER_NAME, LOG_LOCATION, logging.DEBUG)
-    msg_content = open('./cmf/lorem.txt', 'r').read().replace('\n', '')
+    msg_content = open(CMF_LOCATION, 'r').read().replace('\n', '')
 
     queue = deque()
-    queue = message_generator(queue, msg_content)
+    queue = _message_generator(queue, msg_content)
 
     return queue

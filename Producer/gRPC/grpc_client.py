@@ -1,14 +1,17 @@
 
 """ Implementation of my gRPC executor client."""
 
+import common
 import concurrent.futures            
 import threading
 import json
 import logging
 import string
 import time
-from collections import deque
 import sys
+
+from collections import deque
+from tqdm import tqdm
 
 import grpc
 from google.protobuf import json_format
@@ -25,7 +28,7 @@ CONTINUE_SENDING = True
 TEST_LENGTH = 10
 
 LOGGER_NAME =  'client_logger'
-LOG_LOCATION = './log/gRPC_Client.log'
+LOG_LOCATION = './log/gRPC_client.log'
 logger = logging.getLogger(LOGGER_NAME)
 
 
@@ -64,32 +67,34 @@ class GRPCClient():
         return (sent, success)
 
 
-    def message_generator(self, queue: deque, lorem: str):    
-        words = lorem.split()        
+    def message_generator(self, queue: deque):    
+        pbq = deque()
+
+        for msg in queue:
+            pbq.append(cmf_pb2.CmfxRequest(contents=(msg)))
         
-        for _ in range(170): # Just a hair over 100,000 msgs..
-            for idx, word in enumerate(words):
-                words[idx] = word.upper()
-                msg = cmf_pb2.CmfxRequest(contents=(' '.join(words)))
-                queue.append(msg)            
+        logger.info('Converted msgs to pb CmfxRequests!')
         
-        logger.info('Loaded pb CmfxRequests!')
-        return queue
+        return pbq
             
 
     def send_stream(self, queue: deque):                
         for msg in queue:
+            # if idx % 1000 == 0:
+            #     print(type(msg))
             # logger.info('sending: {}'.format(msg))
             yield msg
         
 
-    def run_stream(self, queue: deque):                
+    def run_stream(self, queue: deque) -> float:                
         start = time.time()
         logger.info('calling send_stream with queue of length: {}'.format(len(queue)))     
         msg_iterator = self.send_stream(queue)
-        summary = self.stub.HandleStream(msg_iterator)
+        summary = self.stub.HandleStream(msg_iterator)        
         logger.debug('summary: {}'.format(summary.message))
-        logger.debug('Time elapsed: {}'.format(time.time() - start))
+        test_time = time.time() - start
+        
+        return test_time
 
 
 def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
@@ -111,29 +116,28 @@ def run_for_length_of_time():
 def run():
     global logger
 
+    prep_start = time.time()
     logger = configure_logger(LOGGER_NAME, LOG_LOCATION, logging.DEBUG)
-    msg_content = open('cmf/lorem.txt', 'r').read().replace('\n', '')
+
+    logger.info('Preparing..')
+
+    queue = common.load_messages()
     
     client = GRPCClient()
+    
+    pbq = client.message_generator(queue)
 
-    queue = deque()
-    queue = client.message_generator(queue, msg_content)
+    prep_time = time.time() - prep_start
+
+    logger.info('Finished preparing; now sending..')
 
     try:
-        # test = threading.Thread(target=client.run_stream(queue))
-        client.run_stream(queue)
-
-        # time_thread = threading.Thread(target=run_for_length_of_time)
-        # time_thread.start()
-
-
-        # test.start()
-        # timer = threading.Timer(TEST_LENGTH, run_for_length_of_time, args=(worker,))
-        # timer.start()
+        test_time = client.run_stream(pbq)
         
         # (unary_sent, unary_success) = client.run_unary(msg_content)
         # print('\n\nSent: {}\nSuccess: {}'.format(unary_sent, unary_success))
 
+        logger.debug('Prep time: {}, test time: {}, total time elapsed: {}'.format(prep_time, test_time, (prep_time + test_time)))
 
     except KeyboardInterrupt:
         logger.debug('Interrupted by user.')

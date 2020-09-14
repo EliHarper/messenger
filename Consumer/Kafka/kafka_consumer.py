@@ -6,6 +6,7 @@ import common
 import logging
 import sys
 import time
+import tqdm
 
 
 TEST_LENGTH = 10
@@ -13,6 +14,10 @@ TEST_LENGTH = 10
 LOGGER_NAME =  'kafka_consumer_logger'
 LOG_LOCATION = './log/kafka_consumer.log'
 logger = logging.getLogger(LOGGER_NAME)
+
+LEN_QUEUE = 100980
+msg_chk = common.MessageChecker()
+
 
 def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
         logger = logging.getLogger(name)
@@ -36,20 +41,21 @@ def create_kafka_consumer():
 
 def run():
     global logger
+    global msg_chk
+
     logger = configure_logger(LOGGER_NAME, LOG_LOCATION, logging.DEBUG)    
     
     consumer = create_kafka_consumer()
 
-    msg_chk = common.MessageChecker()
-    numberton = 0
+    pbar = tqdm.tqdm(total=LEN_QUEUE)
+    count = 0
     try:
         for msg in consumer:
-            numberton += 1
+            count += 1
             msg_chk.check_quickly(msg.value)
-            if numberton == 100980:
-                print(len(msg.value))
-                print(msg)
-        
+            pbar.update(1)
+            if count == LEN_QUEUE:
+                pbar.close()
         logger.info('Finished receiving messages. Successful: {}, Unsuccessful: {}'
             .format(msg_chk.count, msg_chk.errcount))
 

@@ -2,11 +2,14 @@
 
 from concurrent import futures
 
+import common
 import grpc
 import logging
-from google.protobuf.json_format import MessageToJson, MessageToDict
 import re
 import sys
+import tqdm
+
+from google.protobuf.json_format import MessageToJson, MessageToDict
 
 from pb import cmf_pb2, cmf_pb2_grpc
 
@@ -16,6 +19,9 @@ LOGGER_NAME = 'server_logger'
 LOG_LOCATION = 'log/gRPC_Server.log'
 LOG_LEVEL = logging.INFO
 logger = logging.getLogger(LOGGER_NAME)
+
+LEN_QUEUE = 100980
+msg_chk = common.MessageChecker()
 
 
 class Executor(cmf_pb2_grpc.ExecutorServicer):
@@ -50,36 +56,24 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
 
 
     def HandleStream(self, request_iterator, context):     
+        global logger
+        global msg_chk
+
+        count = 0
+        pbar = tqdm.tqdm(total=LEN_QUEUE)
+        
         try:            
-            for msg in request_iterator:                                
-                message = msg.contents                                
-                self.check_quickly(message)
+            for msg in request_iterator:
+                count += 1                
+                msg_chk.check_quickly(msg.contents)                
+                pbar.update(1)
+                if count == LEN_QUEUE:
+                    pbar.close()
+
+            logger.debug('About to return; successful: {}, total: {}'.format(msg_chk.count, (msg_chk.errcount + msg_chk.count)))
             return cmf_pb2.ChangeReply(message='success')
         except Exception as e:
-            logger.debug('Unexpected exception (type: {}) occurred while going over messages: {}'.format(type(e),e))            
-    
-
-    def check_quickly(self, message):
-        if len(message) == 4096:
-            self._count += 1
-        else:
-            self._errcount += 1
-
-
-    def check_thoroughly(self, message):
-        lorem = 'Lorem'
-        loremslice = message[:5]
-        cur = 'Cur'
-        curslice = message[len(message)-3:]
-
-        print('loremslice: {}'.format(loremslice))
-        print('curslice: {}'.format(curslice))
-
-        if lorem.upper() == loremslice.upper() and cur.upper() == curslice.upper():
-            self._count += 1
-            return cmf_pb2.ChangeReply(message='success')
-        else:
-            self._errcount += 1
+            logger.debug('Unexpected exception (type: {}) occurred while going over messages: {}'.format(type(e),e))
 
 
 def configure_logger() -> logging.Logger:
@@ -94,6 +88,7 @@ def configure_logger() -> logging.Logger:
 
 def serve():
     global logger
+    global msg_chk
     
     try:
         logger = configure_logger()
@@ -105,7 +100,7 @@ def serve():
         logger.info('Started server.')
         server.wait_for_termination()
     except KeyboardInterrupt:
-        logger.info('\n\nSuccessful count: {}\n\nTotal count: {}'.format(str(executor.count), str(executor.errcount)))
+        logger.info('\n\nSuccessful count: {}\n\nTotal count: {}'.format(str(msg_chk.count), str(msg_chk.errcount + msg_chk.count)))
         sys.exit(0)
 
 
