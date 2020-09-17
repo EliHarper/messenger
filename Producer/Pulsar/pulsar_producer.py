@@ -9,7 +9,6 @@ import traceback
 
 
 client = pulsar.Client(config('PULSAR_URL'))
-producer = client.create_producer('msgs', compression_type=pulsar.CompressionType.LZ4)
 
 LOGGER_NAME =  'pulsar_producer_logger'
 LOG_LOCATION = './log/pulsar_producer.log'
@@ -35,7 +34,6 @@ def run():
     logger = configure_logger(LOGGER_NAME, LOG_LOCATION, logging.DEBUG)
 
     logger.info('Preparing..')
-
     queue = common.load_messages()
 
     logger.info('Finished preparing; starting send with queue of length: {}'.format(len(queue)))
@@ -48,6 +46,8 @@ def run():
 
     try:
         exc_info = sys.exc_info()
+
+        producer = client.create_producer('non-persistent://public/default/msgs', compression_type=pulsar.CompressionType.LZ4)
 
         for msg in queue:
             count += 1

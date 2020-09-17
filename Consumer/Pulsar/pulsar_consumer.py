@@ -28,7 +28,7 @@ def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
 
 
 def create_pulsar_consumer():
-    return client.subscribe('msgs', 'pulsar-subscription')
+    return client.subscribe('non-persistent://public/default/msgs', 'pulsar-subscription')
 
 
 def run():
@@ -42,14 +42,16 @@ def run():
     pbar = tqdm.tqdm(total=LEN_QUEUE)
     count = 0
 
+    
     try:
         exc_info = sys.exc_info()
-        
+
         while count < LEN_QUEUE:
             msg = consumer.receive()
+            # print(msg.data())
             consumer.acknowledge(msg)
             count += 1
-            msg_chk.check_quickly(msg.value)
+            msg_chk.check_quickly(msg.data())
             pbar.update(1)
             if count == LEN_QUEUE:
                 pbar.close()
