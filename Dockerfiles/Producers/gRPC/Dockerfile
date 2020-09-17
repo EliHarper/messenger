@@ -20,9 +20,8 @@ COPY ["./__init__.py", "./Consumer/", "./pb/", "./Producer/", "./cmf/", "./log/"
 RUN ls -la /app
 
 # Start the virtualenv:
-RUN cd /app && pip3 install -r ./requirements.txt 
+RUN cd /app && pip3 install -r ./requirements.txt --trusted-host pypi.org --trusted-host files.pythonhosted.org
 # Add this section to the previous line if running on the PME:
-# --trusted-host pypi.org --trusted-host files.pythonhosted.org
 
 RUN ls -la /app ; pwd
 

@@ -12,8 +12,8 @@ import traceback
 
 TEST_LENGTH = 10
 
-LOGGER_NAME =  'kafka_producer_logger'
-LOG_LOCATION = './log/kafka_producer.log'
+LOGGER_NAME =  'Kafka_producer_logger'
+LOG_LOCATION = './log/Kafka_producer.log'
 logger = logging.getLogger(LOGGER_NAME)
 
 producer = KafkaProducer(bootstrap_servers=[config('KAFKA_URL')],
@@ -75,8 +75,6 @@ def run():
     logger.info('Finished preparing; starting send with queue of length: {}'.format(len(queue)))
     prep_time = time.time() - prep_start
 
-    logger.info('Finished preparing; now sending..')
-    
     start_time = time.time()
     count = 0
 

@@ -20,7 +20,6 @@ LOG_LOCATION = 'log/gRPC_Server.log'
 LOG_LEVEL = logging.INFO
 logger = logging.getLogger(LOGGER_NAME)
 
-LEN_QUEUE = 100980
 msg_chk = common.MessageChecker()
 
 
@@ -60,14 +59,14 @@ class Executor(cmf_pb2_grpc.ExecutorServicer):
         global msg_chk
 
         count = 0
-        pbar = tqdm.tqdm(total=LEN_QUEUE)
+        pbar = tqdm.tqdm(total=common.LEN_QUEUE)
         
         try:            
             for msg in request_iterator:
                 count += 1                
                 msg_chk.check_quickly(msg.contents)                
                 pbar.update(1)
-                if count == LEN_QUEUE:
+                if count == common.LEN_QUEUE:
                     pbar.close()
 
             logger.debug('About to return; successful: {}, total: {}'.format(msg_chk.count, (msg_chk.errcount + msg_chk.count)))

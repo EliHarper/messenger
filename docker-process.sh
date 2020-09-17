@@ -30,9 +30,9 @@ if (( $# > 1)); then
     do
 	 i=${i//,}
 	 echo "Running for ${i}"
-   getSub "$i"
+     getSub "$i"
 	 getFmt "$i"	 
-   docker build -f Dockerfiles/$SUB/$FMT/Dockerfile -t $i . && \
+     docker build -f Dockerfiles/$SUB/$FMT/Dockerfile -t $i . && \
 	 docker tag $i eliharper/$i:$VERSION && \
 	 docker push eliharper/$i:$VERSION
     done
@@ -44,10 +44,10 @@ echo "RUNNING FOR ALL!"
 
 for i in "${images[@]}"
 do
-   i=${i//,}
-   getSub $i
-	 getFmt $i
-	 docker build -f Dockerfiles/$SUB/$FMT/Dockerfile -t ${i//,} . && \
+     i=${i//,}
+     getSub "$i"
+	 getFmt "$i"	 
+     docker build -f Dockerfiles/$SUB/$FMT/Dockerfile -t $i . && \
 	 docker tag $i eliharper/$i:$VERSION && \
 	 docker push eliharper/$i:$VERSION
 	 

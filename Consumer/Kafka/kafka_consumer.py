@@ -10,11 +10,10 @@ import tqdm
 
 TEST_LENGTH = 10
 
-LOGGER_NAME =  'kafka_consumer_logger'
-LOG_LOCATION = './log/kafka_consumer.log'
+LOGGER_NAME =  'Kafka_consumer_logger'
+LOG_LOCATION = './log/Kafka_consumer.log'
 logger = logging.getLogger(LOGGER_NAME)
 
-LEN_QUEUE = 100980
 msg_chk = common.MessageChecker()
 
 
@@ -46,14 +45,14 @@ def run():
     
     consumer = create_kafka_consumer()
 
-    pbar = tqdm.tqdm(total=LEN_QUEUE)
+    pbar = tqdm.tqdm(total=common.LEN_QUEUE)
     count = 0
     try:
         for msg in consumer:
             count += 1
             msg_chk.check_quickly(msg.value)
             pbar.update(1)
-            if count == LEN_QUEUE:
+            if count == common.LEN_QUEUE:
                 pbar.close()
         logger.info('Finished receiving messages. Successful: {}, Unsuccessful: {}'
             .format(msg_chk.count, msg_chk.errcount))
