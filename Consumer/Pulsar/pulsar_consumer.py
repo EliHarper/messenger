@@ -5,6 +5,7 @@ import logging
 import pulsar
 import sys
 import tqdm
+import traceback
 
 
 LOGGER_NAME = 'pulsar_consumer_logger'
@@ -26,17 +27,6 @@ def configure_logger(name: str, filepath: str, logLevel: int) -> logging.Logger:
     return logger
 
 
-# client = pulsar.Client('pulsar://localhost:6650')
-# consumer = client.subscribe('my-topic', 'my-subscription')
-#
-# while True:
-#     msg = consumer.receive()
-#     print("Received message '%s' id='%s'", msg.data().decode('utf-8'), msg.message_id())
-#     consumer.acknowledge(msg)
-#
-# client.close()
-
-
 def create_pulsar_consumer():
     return client.subscribe('msgs', 'pulsar-subscription')
 
@@ -51,7 +41,10 @@ def run():
 
     pbar = tqdm.tqdm(total=LEN_QUEUE)
     count = 0
+
     try:
+        exc_info = sys.exc_info()
+        
         while count < LEN_QUEUE:
             msg = consumer.receive()
             consumer.acknowledge(msg)
@@ -65,6 +58,9 @@ def run():
 
     except Exception as e:
         logger.debug('Shit went down: {}'.format(e))
+        logger.debug('\n***Full trace:\n{}'.format(traceback.print_exc()))
+        traceback.print_exception(*exc_info)
+        del exc_info
 
     except KeyboardInterrupt:
         logger.info('Finished receiving messages. Successful: {}, Unsuccessful: {}'
