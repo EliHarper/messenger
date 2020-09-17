@@ -12,7 +12,7 @@ LOG_LOCATION = './log/pulsar_consumer.log'
 logger = logging.getLogger(LOGGER_NAME)
 
 LEN_QUEUE = 100980
-client = pulsar.Client('pulsar://localhost:6650')
+client = pulsar.Client(config('PULSAR_URL'))
 msg_chk = common.MessageChecker()
 
 

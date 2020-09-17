@@ -1,3 +1,5 @@
+from decouple import config
+
 import common
 import logging
 import pulsar
@@ -6,7 +8,7 @@ import time
 import traceback
 
 
-client = pulsar.Client('pulsar://localhost:6650')
+client = pulsar.Client(config('PULSAR_URL'))
 producer = client.create_producer('msgs', compression_type=pulsar.CompressionType.LZ4)
 
 LOGGER_NAME =  'pulsar_producer_logger'
