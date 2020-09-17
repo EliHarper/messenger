@@ -1,5 +1,6 @@
 
 .env
+env/**
 debug.txt
 log/*
 **/__pycache__/**

@@ -5,7 +5,6 @@ from kafka import KafkaConsumer
 import common
 import logging
 import sys
-import time
 import tqdm
 
 

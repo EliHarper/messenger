@@ -3,14 +3,11 @@ from collections import deque
 from common import load_messages
 from decouple import config
 from kafka import KafkaProducer
-from tqdm import tqdm
 
 import logging
-import tqdm
 import sys
 import time
 import traceback
-
 
 
 TEST_LENGTH = 10
