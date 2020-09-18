@@ -8,7 +8,7 @@ LOG_LOCATION = './log/common.log'
 logger = logging.getLogger(LOGGER_NAME)
 
 CMF_LOCATION = './cmf/lorem.txt'
-LEN_QUEUE = 100980
+LEN_QUEUE = 300564
 MSG_LEN = 4095
 
 
@@ -68,7 +68,7 @@ def _message_generator(queue: deque, lorem: str) -> deque:
     words = lorem.split()
     logger.info('Word count in \"words\": {}'.format(len(words)))
     
-    for _ in range(170): # Just a hair over 100,000 msgs..
+    for _ in range(506): # Just a hair over 300,000 msgs..
         for idx, word in enumerate(words):
             words[idx] = word.upper()
             msg = ' '.join(words)

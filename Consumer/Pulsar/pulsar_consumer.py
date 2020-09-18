@@ -12,7 +12,6 @@ LOGGER_NAME = 'pulsar_consumer_logger'
 LOG_LOCATION = './log/pulsar_consumer.log'
 logger = logging.getLogger(LOGGER_NAME)
 
-LEN_QUEUE = 100980
 client = pulsar.Client(config('PULSAR_URL'))
 msg_chk = common.MessageChecker()
 
@@ -39,21 +38,20 @@ def run():
 
     consumer = create_pulsar_consumer()
 
-    pbar = tqdm.tqdm(total=LEN_QUEUE)
+    pbar = tqdm.tqdm(total=common.LEN_QUEUE)
     count = 0
 
     
     try:
         exc_info = sys.exc_info()
 
-        while count < LEN_QUEUE:
+        while count < common.LEN_QUEUE:
             msg = consumer.receive()
-            # print(msg.data())
             consumer.acknowledge(msg)
             count += 1
             msg_chk.check_quickly(msg.data())
             pbar.update(1)
-            if count == LEN_QUEUE:
+            if count == common.LEN_QUEUE:
                 pbar.close()
         logger.info('Finished receiving messages. Successful: {}, Unsuccessful: {}'
                     .format(msg_chk.count, msg_chk.errcount))

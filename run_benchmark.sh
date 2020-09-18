@@ -2,10 +2,12 @@
 
 
 if (( $# < 1)); then
-    echo "No argument specified. Try running with \"kafka\" as an argument to run the Kafka benchmark."
+    echo "No argument specified. Try running with \"kafka\"  or \"pulsar\" as an argument"
     FMT="gRPC"
-elif [[ $1 == *"k"* ]]; then
+elif [[ $1 == *"afk"* ]]; then
         FMT="Kafka"
+elif [[ $1 == *"uls"* ]]; then
+    FMT="Pulsar"
 elif [[ $1 == *"g"* ]]; then
         FMT="gRPC"    
 else
@@ -17,13 +19,22 @@ hosty=$(hostname)
 if [[ $hosty == *"ocke"* ]]; then
     printf "\n\nrunning from docker!\n\n"
     WORKDIR=/home/eli.harper/messenger
-    SUB="Consumer"
     INVOC="python3"
+    SUB="Consumer"
     if [[ $FMT == *"gRPC"* ]]; then
         FILESUF="_Server"
     else
         FILESUF='_consumer'
     fi
+    
+elif [[ $hosty == *"enkin"*]]; then
+    printf "\n\nrunning from jenkins!\n\n"
+    
+    # Easy one; jenkins is only used as the Pulsar producer:
+    WORKDIR=/home/eli.harper/messenger
+    INVOC="python3"
+    SUB="Producer"
+    FILESUF="_producer"
 else
     WORKDIR=/c/Users/eli.harper/Projects/Messenger
     SUB="Producer"
