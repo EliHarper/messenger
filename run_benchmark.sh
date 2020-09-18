@@ -27,7 +27,7 @@ if [[ $hosty == *"ocke"* ]]; then
         FILESUF='_consumer'
     fi
     
-elif [[ $hosty == *"enkin"*]]; then
+elif [[ $hosty == *"enkin"* ]]; then
     printf "\n\nrunning from jenkins!\n\n"
     
     # Easy one; jenkins is only used as the Pulsar producer:
